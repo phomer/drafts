@@ -22,7 +22,7 @@ So a binary+ tree is just a binary tree, but with all of the data stored in the 
 
 As we build up the tree, we add in new leaf nodes so that they are ordered lexically, which is a fancier way of saying mostly alphabetical. To insure that the existing leaf nodes always remain at the bottom of the tree, each new insert requires us to add an internal node as well. This means that if there are, say, 10 leaf nodes, then there should be 20 nodes in the tree. Opps, 19, because the very first node doesn't actually need a corresponding internal node.
 
-## Perforance Considerations
+## Performance Considerations
 
 One problem with an ordered binary+ trees is that if all the nodes come into the tree in ascending order, we'll keep adding them only to the right side, which will cause the tree to degenerate into a linked list with no left-hand children. If we were to search for the last node we would have to visit all N nodes.
 
@@ -56,7 +56,7 @@ Now this then gives us a whole bunch of different ways to refer to any node. We 
 Since we almost got to immutability when the data was in binary+ form, it seems like we can get there with the Merkle tree. We just make sure we compute the hashes. We nearly achieve this, but again there is a wrinkle. The nodes in memory have pointers to their children, but we
 can just as easily refer to them by their children's hashes. It becomes necessary for us to delete these pointers sometimes in order to deal with cleaning up the tree in between changes. If for example, we cache one node because it is in the current Set path, and it still has pointers to both underlying children, then at least one of those children is not in the cache and should have been garbage collected, but can't be.
 
-## A Funny Thing Happended on the Way to the Forum
+## A Funny Thing Happened on the Way to the Forum
 
 When we go to add in a new leaf node to an existing tree something interesting happens. If we take a simple example of adding in a new leaf node on the far right, we will have to create a node for the leaf and an new internal node to hold its neighbor. As well, every parent going upwards through the internal nodes will have changed now, all the way up to the root, but we really wanted them to be immutable. To accomplish this, we end up recreating all Log N nodes in the path, pointing them to the new right side children, but also to the existing left children too.
 
@@ -82,7 +82,7 @@ Now on top of this, we'd like to store history. We want to keep any tree that ha
 
 We need this because lite-clients will not necessarily be able to get an independent block hash and a proof at the same time. If they are going to two difference sources, there is an inherent race condition that needs to be address. To solve this we require proofs that are somewhat earlier in history.
  
-The rather obvious extension is to keep track of the many persistent roots inthe database. We want a fixed number of them, say 1000, since we need to be able to constraint the disk usage. 
+The rather obvious extension is to keep track of the many persistent roots in the database. We want a fixed number of them, say 1000, since we need to be able to constraint the disk usage. 
 
 If we persist any given root, with its new set of paths, then all we really need to do is keep track of this, and at a later point delete all of the persisted nodes. The root hash in this case acts as a unique key, to which we can reach all of the underlying node changes.
 
@@ -95,6 +95,5 @@ When we have too many old persistent roots, all we need to do is get any orphan 
 So the summary of all of this is fairly straightforward. We take the app's key-value pairs, build a binary+ tree on them as a series of paths. Once a Save is issued, we overlay a Merkle Tree on top, push any current persistent orphans into the database and then save the tree values, keyed by the node hashes. We keep this final root, along with the older versions and whenever we have too many we just prune the old roots and their orphan lists out of the database. Again, for convenience we associate the tree version numbers with the block height, specifically because the block Commits are what cause the tree Saves.
 
 The last little wrinkle is that we have to make sure that across a bunch of Saves, each node is still unique. That is, for one version a leaf node may exist, then deleted for another, then return again. This really isn't a problem because we keep that explicit version number. All we need for this is to add that version into the data that is being hashed at the leaf nodes, insuring that the keys will always be different.
-
 
 
