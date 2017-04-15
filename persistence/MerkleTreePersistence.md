@@ -24,10 +24,10 @@ As we build up the tree, we add in new leaf nodes so that they are ordered lexic
 
 ## Performance Considerations
 
+
 One problem with an ordered binary+ trees is that if all the nodes come into the tree in ascending order, we'll keep adding them only to the right side, which will cause the tree to degenerate into a linked list with no left-hand children. If we were to search for the last node we would have to visit all N nodes.
 
-To avoid this and for better performance, we automatically balance the tree, the same as is done for an AVL Tree. This keeps the tree from becoming too lop-sided.  This is less expensive than a fully weight balanced tree, but the trade-off is faster insert and deletion times. AVL
-trees insure that inserts and deletes are no worse than Log N, or to put a little more causally, these operations need only follow a specific 'path' down the tree to accomplish their goal; they don't have to visit every node that exists. That makes a big difference once the tree has become huge.
+To avoid this and for better performance, we automatically balance the tree, the same as is done for an AVL Tree. This keeps the tree from becoming too lop-sided.  This is less expensive than a fully weight balanced tree, but the trade-off is faster insert and deletion times. AVL trees insure that inserts and deletes are no worse than Log N, or to put a little more causally, these operations need only follow a specific 'path' down the tree to accomplish their goal; they don't have to visit every node that exists. That makes a big difference once the tree has become huge.
 
 The app can do any number of Sets and Removes on these keys. Technically a Set can add a new value or it can replace an existing one, but for that second case we choose to ignore it and add in a new node anyways. So essentially this makes the binary+ tree immutable. The data in the node that composes the binary tree gets written once and is locked into place. However, this data is only a part of the what makes up a node, as we shall soon see.
 
@@ -53,10 +53,9 @@ As an almost free optimization, since we might need to access the same persisten
 
 Now this then gives us a whole bunch of different ways to refer to any node. We identify the leaf nodes by their unique keys, but they also can be accessed by their hash. The internal nodes can be identified by their hashes, but we still have the original pointers of the binary+ tree in their as well. The keys for the internal nodes aren't unique, but they do act as guide posts for finding out where the lexically ordered leaf nodes ended up.
 
-Since we almost got to immutability when the data was in binary+ form, it seems like we can get there with the Merkle tree. We just make sure we compute the hashes. We nearly achieve this, but again there is a wrinkle. The nodes in memory have pointers to their children, but we
-can just as easily refer to them by their children's hashes. It becomes necessary for us to delete these pointers sometimes in order to deal with cleaning up the tree in between changes. If for example, we cache one node because it is in the current Set path, and it still has pointers to both underlying children, then at least one of those children is not in the cache and should have been garbage collected, but can't be.
+Since we almost got to immutability when the data was in binary+ form, it seems like we can get there with the Merkle tree. We just make sure we compute the hashes. We nearly achieve this, but again there is a wrinkle. The nodes in memory have pointers to their children, but we can just as easily refer to them by their children's hashes. It becomes necessary for us to delete these pointers sometimes in order to deal with cleaning up the tree in between changes. If for example, we cache one node because it is in the current Set path, and it still has pointers to both underlying children, then at least one of those children is not in the cache and should have been garbage collected, but can't be.
 
-## A Funny Thing Happened on the Way to the Forum
+## A Funny Thing Happended on the Way to the Forum
 
 When we go to add in a new leaf node to an existing tree something interesting happens. If we take a simple example of adding in a new leaf node on the far right, we will have to create a node for the leaf and an new internal node to hold its neighbor. As well, every parent going upwards through the internal nodes will have changed now, all the way up to the root, but we really wanted them to be immutable. To accomplish this, we end up recreating all Log N nodes in the path, pointing them to the new right side children, but also to the existing left children too.
 
@@ -95,5 +94,3 @@ When we have too many old persistent roots, all we need to do is get any orphan 
 So the summary of all of this is fairly straightforward. We take the app's key-value pairs, build a binary+ tree on them as a series of paths. Once a Save is issued, we overlay a Merkle Tree on top, push any current persistent orphans into the database and then save the tree values, keyed by the node hashes. We keep this final root, along with the older versions and whenever we have too many we just prune the old roots and their orphan lists out of the database. Again, for convenience we associate the tree version numbers with the block height, specifically because the block Commits are what cause the tree Saves.
 
 The last little wrinkle is that we have to make sure that across a bunch of Saves, each node is still unique. That is, for one version a leaf node may exist, then deleted for another, then return again. This really isn't a problem because we keep that explicit version number. All we need for this is to add that version into the data that is being hashed at the leaf nodes, insuring that the keys will always be different.
-
-
